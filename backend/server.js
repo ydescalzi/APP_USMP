@@ -17,8 +17,20 @@ const upload = multer({
   storage: multer.memoryStorage()
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cors());
+
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.too.large') {
+    console.error('Payload too large:', err.message);
+    return res.status(413).json({
+      success: false,
+      message: 'El tamaño de la petición es demasiado grande'
+    });
+  }
+  next(err);
+});
 
 /* =========================
    LOG REQUESTS
@@ -629,6 +641,14 @@ app.put("/perfil/actualizar", async (req, res) => {
   try {
     const { codigoSAP, direccion, celular, gmailPersonal, foto } = req.body;
 
+    console.log('/perfil/actualizar request body:', {
+      codigoSAP,
+      direccion: typeof direccion !== 'undefined',
+      celular: typeof celular !== 'undefined',
+      gmailPersonal: typeof gmailPersonal !== 'undefined',
+      fotoLength: foto ? foto.length : 0
+    });
+
     if (!codigoSAP) {
       return res.status(400).json({
         success: false,
@@ -657,7 +677,17 @@ app.put("/perfil/actualizar", async (req, res) => {
       );
     } else {
       await connection.query(
-        "INSERT INTO telefono (CODIGOSAP, CODIGOTIPOTELEFONO, NUMERO) VALUES (?, '02', ?)",
+        `INSERT INTO telefono (
+           CODIGOSAP,
+           CONTADOR,
+           NUMERO,
+           CODIGOTIPOTELEFONO,
+           VIGENCIA,
+           CODIGOUSUARIOCREACION,
+           FECHAHORACREACION,
+           CODIGOUSUARIOMODIFICACION,
+           FECHAHORAMODIFICACION
+         ) VALUES (?, 1, ?, '02', 0, 'APP', NOW(), 'APP', NOW())`,
         [codigoSAP, celular]
       );
     }
@@ -682,26 +712,30 @@ app.put("/perfil/actualizar", async (req, res) => {
 
     // 4. PROCESAR FOTO
     if (foto) {
-      // Eliminamos el prefijo data:image/... si existe
-      const base64Data = foto.replace(/^data:image\/\w+;base64,/, "");
+      const base64Data = foto.replace(/^data:image\/\w+;base64,/, "").trim();
       const bufferFoto = Buffer.from(base64Data, "base64");
 
-      const [fotoCheck] = await connection.query(
-        "SELECT 1 FROM foto WHERE CODIGOSAP = ?",
-        [codigoSAP]
-      );
+      console.log('Guardando foto base64 para:', codigoSAP, 'bytes:', bufferFoto.length);
 
-      if (fotoCheck.length > 0) {
-        await connection.query(
-          "UPDATE foto SET FOTO = ? WHERE CODIGOSAP = ?",
-          [bufferFoto, codigoSAP]
-        );
-      } else {
-        await connection.query(
-          "INSERT INTO foto (CODIGOSAP, FOTO, VIGENCIA) VALUES (?, ?, 1)",
-          [codigoSAP, bufferFoto]
-        );
-      }
+      await connection.query(
+        `INSERT INTO foto (
+          CODIGOSAP,
+          FOTO,
+          VIGENCIA,
+          CODIGOTIPOPERSONA,
+          CODIGODEPENDENCIA,
+          CODIGOUSUARIOCREACION,
+          CODIGOUSUARIOMODIFICACION,
+          FECHAHORACREACION,
+          FECHAHORAMODIFICACION
+        ) VALUES (?, ?, 1, 'E', 'DEP01', 'APP_MOBILE', 'APP_MOBILE', NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+          FOTO = VALUES(FOTO),
+          VIGENCIA = VALUES(VIGENCIA),
+          CODIGOUSUARIOMODIFICACION = VALUES(CODIGOUSUARIOMODIFICACION),
+          FECHAHORAMODIFICACION = NOW()`,
+        [codigoSAP, bufferFoto]
+      );
     }
 
     await connection.commit();
@@ -1107,6 +1141,7 @@ app.get('/recibos/conceptos/:codigosap', async (req, res) => {
 /* =========================
    PERIODOS
 ========================= */
+
 app.get('/recibos/periodos/:codigosap', async (req, res) => {
   try {
 

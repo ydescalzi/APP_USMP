@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   SectionList,
   ActivityIndicator,
   Alert,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
@@ -24,7 +24,7 @@ export default function HorarioScreen() {
   const agruparPorDia = (data) => {
     const diasOrden = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
     const grupos = data.reduce((acc, item) => {
-      const dia = item.DIA.toUpperCase();
+      const dia = item.DIA?.toUpperCase() || "OTROS";
       if (!acc[dia]) acc[dia] = [];
       acc[dia].push(item);
       return acc;
@@ -45,7 +45,7 @@ export default function HorarioScreen() {
       const semestre = await AsyncStorage.getItem('semestre');
 
       if (!codigosap || !anio || !semestre) {
-        Alert.alert('Error', 'Datos no encontrados');
+        Alert.alert('Error', 'Información de sesión no encontrada');
         setLoading(false);
         return;
       }
@@ -64,18 +64,36 @@ export default function HorarioScreen() {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <View style={[styles.statusIndicator, { backgroundColor: '#8B0000' }]} />
+      {/* Indicador lateral */}
+      <View style={styles.statusIndicator} />
+      
       <View style={styles.cardBody}>
+        {/* Fila del Curso (Corregido: era un div) */}
         <View style={styles.infoRow}>
           <Icon name="book-open-variant" size={20} color="#8B0000" />
-          <Text style={styles.cursoText}>{item.CURSO}</Text>
+          <Text style={styles.cursoText} numberOfLines={2}>
+            {item.CURSO}
+          </Text>
         </View>
         
         <View style={styles.divider} />
         
-        <View style={styles.infoRow}>
-          <Icon name="clock-outline" size={18} color="#D4AF37" />
-          <Text style={styles.horaText}>{item.HORAINICIO} - {item.HORAFIN}</Text>
+        {/* Fila de Hora y Aula */}
+        <View style={styles.amountContainer}>
+          <View style={styles.infoRow}>
+            <Icon name="clock-outline" size={18} color="#D4AF37" />
+            <Text style={styles.horaText}>
+              {item.HORAINICIO} - {item.HORAFIN}
+            </Text>
+          </View>
+
+          {/* Etiqueta dorada para el Aula */}
+          <View style={styles.goldTag}>
+            <Icon name="door-open" size={14} color="#8B4513" style={{ marginRight: 4 }} />
+            <Text style={styles.goldTagText}>
+              {item.AULA || 'VIRTUAL'}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -83,7 +101,7 @@ export default function HorarioScreen() {
 
   const renderSectionHeader = ({ section: { title } }) => (
     <View style={styles.sectionHeader}>
-      <Icon name="calendar-today" size={18} color="#111827" style={{ marginRight: 8 }} />
+      <Icon name="calendar-today" size={18} color="#111827" />
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.sectionLine} />
     </View>
@@ -98,10 +116,10 @@ export default function HorarioScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#8B0000" />
       
-      {/* Header */}
+      {/* Header Institucional */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Mi Horario</Text>
@@ -112,7 +130,7 @@ export default function HorarioScreen() {
         </View>
       </View>
 
-      {/* Lista Agrupada */}
+      {/* Lista Principal */}
       <SectionList
         sections={horarioAgrupado}
         keyExtractor={(item, index) => index.toString()}
@@ -120,9 +138,10 @@ export default function HorarioScreen() {
         renderSectionHeader={renderSectionHeader}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Icon name="calendar-remove" size={50} color="#9CA3AF" />
+            <Icon name="calendar-remove" size={60} color="#9CA3AF" />
             <Text style={styles.emptyText}>No hay clases registradas</Text>
           </View>
         }

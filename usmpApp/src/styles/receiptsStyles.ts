@@ -1,6 +1,6 @@
 import { StyleSheet, Platform, Dimensions } from 'react-native';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F3F4F6' },
@@ -17,6 +17,7 @@ export const styles = StyleSheet.create({
   },
   headerTitle: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
   iconBtn: { width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  
   filterSection: { paddingHorizontal: 20, marginTop: -40, marginBottom: 10 },
   filterCard: {
     backgroundColor: '#FFF',
@@ -25,7 +26,7 @@ export const styles = StyleSheet.create({
     elevation: 8,
     shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10,
   },
-  // Botones que reemplazan al Picker
+
   selectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -44,18 +45,19 @@ export const styles = StyleSheet.create({
     color: '#374151',
     fontWeight: '500'
   },
-  // --- ESTILOS DEL MODAL (LISTA DE PERIODOS) ---
+
+  // --- ESTILOS DEL MODAL ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end'
   },
   modalContainer: {
     backgroundColor: '#FFF',
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    maxHeight: height * 0.7,
-    paddingBottom: 20
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    maxHeight: height * 0.85,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20
   },
   modalHeader: {
     flexDirection: 'row',
@@ -70,6 +72,82 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#111827'
   },
+
+  // --- ESTILOS ESPECÍFICOS DEL INSTRUCTIVO (NUEVO) ---
+  insSectionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 8,
+    backgroundColor: '#F8F9FA',
+    padding: 8,
+    borderRadius: 8
+  },
+  insTitleText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#8B0000',
+    marginLeft: 8,
+    textTransform: 'uppercase'
+  },
+  insItem: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    paddingLeft: 5
+  },
+  insIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF1F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#FFCCC7'
+  },
+  insTextContainer: {
+    flex: 1
+  },
+  insLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1F2937'
+  },
+  insDescription: {
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 18
+  },
+  insAlertCard: {
+    backgroundColor: '#FFFBE6',
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE58F',
+    marginTop: 10,
+    marginBottom: 20,
+    flexDirection: 'row'
+  },
+  insAlertText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#856404',
+    lineHeight: 17,
+    marginLeft: 10
+  },
+  btnEntendido: {
+    backgroundColor: '#8B0000',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#8B0000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5
+  },
+
+  // --- RESTO DE ESTILOS ---
   modalItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -77,19 +155,10 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F9FAFB'
   },
-  modalItemSelected: {
-    backgroundColor: '#FFF5F5'
-  },
-  modalItemText: {
-    marginLeft: 15,
-    fontSize: 15,
-    color: '#4B5563'
-  },
-  modalItemTextSelected: {
-    color: '#8B0000',
-    fontWeight: 'bold'
-  },
-  // --- ESTILOS DE LA CARD DE RECIBO ---
+  modalItemSelected: { backgroundColor: '#FFF5F5' },
+  modalItemText: { marginLeft: 15, fontSize: 15, color: '#4B5563' },
+  modalItemTextSelected: { color: '#8B0000', fontWeight: 'bold' },
+
   list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
   card: {
     backgroundColor: '#FFF', borderRadius: 18, marginBottom: 15,

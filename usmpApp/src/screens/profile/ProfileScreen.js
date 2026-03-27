@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -61,42 +60,15 @@ export default function ProfileScreen({ navigation }) {
   // Estado para manejar errores de carga de imagen
   const [imageError, setImageError] = useState(false);
 
+  // URL del Servidor (Igual que en Home)
+  const API_URL = "http://10.0.2.2:3001";
+
   useEffect(() => {
     fetchProfile();
   }, []);
 
   /* =========================
-     GESTIÓN DE FOTOS
-  ========================= */
-  const seleccionarFoto = () => {
-    Alert.alert("Foto de Perfil", "Selecciona una opción", [
-      { text: "Cámara", onPress: () => abrirCamara() },
-      { text: "Galería", onPress: () => abrirGaleria() },
-      { text: "Cancelar", style: "cancel" }
-    ]);
-  };
-
-  const abrirCamara = () => {
-    launchCamera({ mediaType: "photo", quality: 0.7 }, (response) => {
-      if (response.didCancel) return;
-      if (response.assets && response.assets.length > 0) {
-        console.log("Nueva foto:", response.assets[0].uri);
-        // Aquí deberías implementar la lógica para subir la imagen al servidor
-      }
-    });
-  };
-
-  const abrirGaleria = () => {
-    launchImageLibrary({ mediaType: "photo", quality: 0.7 }, (response) => {
-      if (response.didCancel) return;
-      if (response.assets && response.assets.length > 0) {
-        console.log("Nueva foto:", response.assets[0].uri);
-      }
-    });
-  };
-
-  /* =========================
-     OBTENER DATOS DEL PERFIL
+      OBTENER DATOS DEL PERFIL
   ========================= */
   const fetchProfile = async () => {
     try {
@@ -107,25 +79,17 @@ export default function ProfileScreen({ navigation }) {
       const userRaw = await AsyncStorage.getItem('user');
       const localUser = JSON.parse(userRaw);
 
-      const codigoSAP = localUser?.codigoSAP || localUser?.CodigoSAP || localUser?.CODIGOSAP;
+      // Obtenemos el código SAP del storage local
+      const codigoSAP = localUser?.codigoSAP || localUser?.CODIGOSAP || localUser?.CodigoSAP;
 
       const response = await api.get(`/perfil/${codigoSAP}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      let data = response.data?.data || response.data;
+      const data = response.data?.data || response.data;
 
-      // --- CORRECCIÓN CRÍTICA DE LA URL DE IMAGEN ---
-      if (data.foto) {
-        // 1. Si es HTTP, intentamos forzar HTTPS para Android
-        if (data.foto.startsWith('http:')) {
-            data.foto = data.foto.replace('http:', 'https:');
-        }
-        // 2. Si recibes solo el nombre del archivo, concatena tu URL base
-        // data.foto = `https://tu-servidor.com/storage/${data.foto}`;
-      }
-
-      setUser(data);
+      // Seteamos los estados
+      setUser({ ...data, codigoSAP }); // Aseguramos que el objeto user tenga el codigoSAP para la foto
       setDireccion(data.direccion || '');
       setCelular(data.celular || '');
       setEmailPersonal(data.gmailPersonal || '');
@@ -139,9 +103,14 @@ export default function ProfileScreen({ navigation }) {
   };
 
   /* =========================
-     GUARDAR CAMBIOS
+      GUARDAR CAMBIOS (SOLO TEXTO)
   ========================= */
   const handleSave = async () => {
+    if (!direccion || !celular || !emailPersonal) {
+        Alert.alert("Atención", "Por favor completa todos los campos de contacto");
+        return;
+    }
+
     try {
       setSaving(true);
       const token = await AsyncStorage.getItem('token');
@@ -157,11 +126,12 @@ export default function ProfileScreen({ navigation }) {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (response.data?.success) {
+      if (response.data?.success || response.status === 200) {
         setShowSuccess(true);
         fetchProfile();
       }
     } catch (error) {
+      console.error("Error al actualizar:", error);
       Alert.alert("Error", "Hubo un problema al guardar los cambios");
     } finally {
       setSaving(false);
@@ -190,34 +160,34 @@ export default function ProfileScreen({ navigation }) {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={{ flex: 1 }}
+      >
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           
-          {/* SECCIÓN DEL AVATAR */}
+          {/* SECCIÓN DEL AVATAR (USA LA LÓGICA DEL HOME) */}
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
-              <View style={[styles.avatar, { overflow: 'hidden', backgroundColor: '#F5F5F5' }]}>
+              <View style={[styles.avatar, localStyles.avatarBorder]}>
                 
-                {user?.foto && !imageError ? (
+                {user?.codigoSAP && !imageError ? (
                   <Image
-                    source={{ uri: user.foto }}
+                    source={{ 
+                        uri: `${API_URL}/foto/${user.codigoSAP}`,
+                        cache: "force-cache" 
+                    }}
                     style={localStyles.avatarImg}
                     resizeMode="cover"
-                    onError={(e) => {
-                        console.log("Error cargando imagen:", e.nativeEvent.error);
+                    onError={() => {
+                        console.log("Error cargando foto en Perfil");
                         setImageError(true);
                     }}
                   />
                 ) : (
-                  <TouchableOpacity
-                    style={localStyles.cameraPlaceholder}
-                    onPress={seleccionarFoto}
-                  >
-                    <Icon name="camera-plus" size={40} color="#8B0000" />
-                    <Text style={localStyles.addPhotoText}>
-                      {imageError ? "Error al cargar" : "Agregar Foto"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={localStyles.placeholderContainer}>
+                    <Icon name="account" size={70} color="#CCC" />
+                  </View>
                 )}
 
               </View>
@@ -232,29 +202,50 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </View>
 
-          {/* INFORMACIÓN ACADÉMICA */}
+          {/* INFORMACIÓN ACADÉMICA (SOLO LECTURA) */}
           <Text style={styles.sectionTitle}>Información Académica</Text>
           <View style={styles.infoGrid}>
             <ReadOnlyBox icon="calendar-check" label="Año Ingreso" value={user?.anioIngreso} />
             <ReadOnlyBox icon="clock-outline" label="Semestre" value={user?.semestreIngreso} />
           </View>
 
-          {/* DATOS DE CONTACTO */}
+          {/* DATOS DE CONTACTO (EDITABLES) */}
           <Text style={styles.sectionTitle}>Datos de Contacto</Text>
           <View style={styles.editCard}>
-            <EditableField icon="map-marker-radius" label="Dirección" value={direccion} onChangeText={setDireccion} />
-            <EditableField icon="phone" label="Celular" value={celular} onChangeText={setCelular} keyboardType="phone-pad" />
-            <EditableField icon="email" label="Correo Personal" value={emailPersonal} onChangeText={setEmailPersonal} keyboardType="email-address" />
+            <EditableField 
+                icon="map-marker-radius" 
+                label="Dirección" 
+                value={direccion} 
+                onChangeText={setDireccion} 
+            />
+            <EditableField 
+                icon="phone" 
+                label="Celular" 
+                value={celular} 
+                onChangeText={setCelular} 
+                keyboardType="phone-pad" 
+            />
+            <EditableField 
+                icon="email" 
+                label="Correo Personal" 
+                value={emailPersonal} 
+                onChangeText={setEmailPersonal} 
+                keyboardType="email-address" 
+            />
           </View>
 
           {/* BOTÓN ACTUALIZAR */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
+          <TouchableOpacity 
+            style={[styles.saveButton, saving && { opacity: 0.7 }]} 
+            onPress={handleSave} 
+            disabled={saving}
+          >
             {saving ? (
-              <ActivityIndicator color="#8B0000" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Icon name="content-save-check" size={20} color="#8B0000" style={{ marginRight: 8 }} />
-                <Text style={styles.saveText}>ACTUALIZAR PERFIL</Text>
+                <Text style={styles.saveText}>ACTUALIZAR DATOS</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -263,7 +254,7 @@ export default function ProfileScreen({ navigation }) {
 
       <SuccessModal 
         visible={showSuccess} 
-        message="Tu perfil ha sido actualizado correctamente" 
+        message="Tus datos de contacto han sido actualizados correctamente" 
         onClose={() => setShowSuccess(false)} 
       />
     </SafeAreaView>
@@ -271,7 +262,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 /* =========================
-   SUB-COMPONENTES REUTILIZABLES
+   SUB-COMPONENTES
 ========================= */
 const ReadOnlyBox = ({ icon, label, value }) => (
   <View style={styles.readOnlyBox}>
@@ -299,11 +290,10 @@ const EditableField = ({ icon, label, value, onChangeText, keyboardType }) => (
   </View>
 );
 
-/* Estilos locales de seguridad para asegurar visibilidad */
 const localStyles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' },
   loaderText: { marginTop: 10, color: "#8B0000", fontWeight: "600" },
-  avatarImg: { width: '100%', height: '100%' }, // Importante: dimensiones al 100% del padre
-  cameraPlaceholder: { flex: 1, justifyContent: "center", alignItems: "center" },
-  addPhotoText: { fontSize: 12, color: "#8B0000", marginTop: 5, textAlign: 'center' }
+  avatarImg: { width: '100%', height: '100%' },
+  avatarBorder: { overflow: 'hidden', backgroundColor: '#F5F5F5' },
+  placeholderContainer: { flex: 1, justifyContent: "center", alignItems: "center" }
 });

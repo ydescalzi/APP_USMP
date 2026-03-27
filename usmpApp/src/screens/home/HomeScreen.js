@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,112 +8,107 @@ import {
   ImageBackground,
   ActivityIndicator,
   Modal,
-  Image
+  Image,
+  StyleSheet,
+  Platform
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import api from '../../services/api'; // Asegúrate de tener tu instancia de API importada
 import styles from '../../styles/HomeStyles';
 
-export default function HomeScreen({ navigation }) {
+// Componente MenuItem mejorado con sistema de Notificaciones (Badges)
+const MenuItem = React.memo(({ title, icon, color = "#8B0000", onPress, subText = "Acceder ahora", hasBadge = false }) => (
+  <TouchableOpacity
+    activeOpacity={0.8}
+    style={styles.card}
+    onPress={onPress}
+  >
+    <View style={[styles.iconCircle, { backgroundColor: `${color}12` }]}>
+      <Icon name={icon} size={28} color={color} />
+      {/* INDICADOR DE NOTIFICACIÓN (PUNTO ROJO) */}
+      {hasBadge && (
+        <View style={localStyles.badgeDot} />
+      )}
+    </View>
 
+    <View style={styles.cardContent}>
+      <Text style={styles.cardText}>{title}</Text>
+      <Text style={[styles.cardSubText, hasBadge && { color: '#EF4444', fontWeight: 'bold' }]}>
+        {hasBadge && title === "Recibos" ? "¡Pago pendiente!" : subText}
+      </Text>
+    </View>
+
+    <View style={styles.cardArrow}>
+      <Icon name="chevron-right" size={18} color="#94A3B8" />
+    </View>
+  </TouchableOpacity>
+));
+
+export default function HomeScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  // ESTADOS PARA NOTIFICACIONES
+  const [hasPendingReceipts, setHasPendingReceipts] = useState(false);
 
   const API_URL = "http://10.0.2.2:3001";
 
   useEffect(() => {
-    loadUser();
+    loadUserAndData();
   }, []);
 
-  /* =========================
-     CARGAR USUARIO
-  ========================= */
-
-  const loadUser = async () => {
-
+  const loadUserAndData = async () => {
     try {
-
       const data = await AsyncStorage.getItem('user');
-
       if (data) {
-
-        const parsedUser = JSON.parse(data);
-        setUser(parsedUser);
-
+        const localUser = JSON.parse(data);
+        setUser(localUser);
+        
+        // Verificamos recibos pendientes apenas carga el Home
+        const codigo = localUser?.codigoSAP || localUser?.CODIGOSAP;
+        if (codigo) {
+          checkReceipts(codigo);
+        }
       }
-
     } catch (e) {
-
-      console.log("Error cargando usuario:", e);
-
+      console.log("Error cargando datos:", e);
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
-  /* =========================
-     LOGOUT
-  ========================= */
+  const checkReceipts = async (codigo) => {
+    try {
+      const res = await api.get(`/recibos/${codigo}`);
+      const data = res.data?.data || res.data || [];
+      const rows = Array.isArray(data) ? data : data.rows || [];
+      
+      // Si hay al menos un recibo con estado 'P' (Pendiente)
+      const pending = rows.some(r => (r.CODIGOESTADORECIBO || r.estado) === 'P');
+      setHasPendingReceipts(pending);
+    } catch (err) {
+      console.log("Error al verificar notificaciones de recibos:", err);
+    }
+  };
 
   const handleConfirmLogout = async () => {
-
     setLogoutModalVisible(false);
     setIsLoggingOut(true);
 
     setTimeout(async () => {
-
       await AsyncStorage.multiRemove(['token', 'user']);
-
       navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],
       });
-
     }, 1200);
-
   };
-
-  /* =========================
-     ITEM MENU
-  ========================= */
-
-  const MenuItem = ({ title, icon, screen, color = "#8B0000" }) => (
-
-    <TouchableOpacity
-      activeOpacity={0.8}
-      style={styles.card}
-      onPress={() =>
-        navigation.navigate(screen, { codigosap: user?.CODIGOSAP })
-      }
-    >
-
-      <View style={[styles.iconCircle, { backgroundColor: `${color}12` }]}>
-        <Icon name={icon} size={28} color={color} />
-      </View>
-
-      <View style={styles.cardContent}>
-        <Text style={styles.cardText}>{title}</Text>
-        <Text style={styles.cardSubText}>Acceder ahora</Text>
-      </View>
-
-      <View style={styles.cardArrow}>
-        <Icon name="chevron-right" size={18} color="#94A3B8" />
-      </View>
-
-    </TouchableOpacity>
-
-  );
-
-  /* =========================
-     LOADING
-  ========================= */
 
   if (loading) {
     return (
@@ -124,71 +119,38 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-
     <SafeAreaView style={styles.container}>
-
       <StatusBar barStyle="light-content" backgroundColor="#8B0000" />
 
       {/* HEADER */}
-
       <View style={styles.header}>
-
         <View style={styles.headerTop}>
-
           <View style={styles.profileSection}>
-
-            {/* FOTO USUARIO */}
-
             <View style={styles.avatar}>
-
-              {user?.CODIGOSAP ? (
-
+              {user?.CODIGOSAP && !imageError ? (
                 <Image
                   source={{
                     uri: `${API_URL}/foto/${user.CODIGOSAP}`,
                     cache: "force-cache"
                   }}
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 25
-                  }}
-                  resizeMode="cover"
-                  onLoad={() => console.log("Foto cargada")}
-                  onError={(e) =>
-                    console.log("Error cargando foto:", e.nativeEvent)
-                  }
+                  style={{ width: 50, height: 50, borderRadius: 25 }}
+                  onError={() => setImageError(true)}
                 />
-
               ) : (
-
                 <Text style={styles.avatarText}>
                   {user?.NOMBRES ? user.NOMBRES.charAt(0) : "U"}
                 </Text>
-
               )}
-
             </View>
 
             <View style={styles.infoUser}>
-
-              <Text style={styles.welcomeText}>
-                Panel del Estudiante
-              </Text>
-
-              <Text style={styles.userName}>
-                {user?.NOMBRES}
-              </Text>
-
+              <Text style={styles.welcomeText}>Panel del Estudiante</Text>
+              <Text style={styles.userName}>{user?.NOMBRES}</Text>
               <View style={styles.tagSede}>
                 <Icon name="map-marker" size={12} color="#FFD700" />
-                <Text style={styles.tagSedeText}>
-                  USMP - Filial Norte
-                </Text>
+                <Text style={styles.tagSedeText}>USMP - Filial Norte</Text>
               </View>
-
             </View>
-
           </View>
 
           <TouchableOpacity
@@ -197,114 +159,136 @@ export default function HomeScreen({ navigation }) {
           >
             <Icon name="power" size={22} color="#FFF" />
           </TouchableOpacity>
-
         </View>
-
       </View>
-
-      {/* CONTENIDO */}
 
       <ImageBackground
         source={require('../../assets/images/logo_20_negro.png')}
         style={styles.backgroundLogo}
         imageStyle={styles.imgStyle}
       >
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          
           <View style={styles.sectionHeader}>
-
-            <Text style={styles.sectionTitle}>
-              Servicios Académicos
-            </Text>
-
+            <Text style={styles.sectionTitle}>Servicios Académicos</Text>
             <View style={styles.titleBadge}>
-              <Text style={styles.titleBadgeText}>NUEVO</Text>
+              <Text style={styles.titleBadgeText}>2026</Text>
             </View>
-
           </View>
 
           <View style={styles.grid}>
+            <MenuItem 
+              title="Perfil" icon="account-tie" color="#6366F1" 
+              onPress={() => navigation.navigate('Profile', { codigosap: user?.CODIGOSAP })} 
+            />
+            
+            <MenuItem 
+              title="Matrícula" icon="file-certificate" color="#0EA5E9" 
+              onPress={() => navigation.navigate('Matricula', { codigosap: user?.CODIGOSAP })} 
+            />
 
-            <MenuItem title="Perfil" icon="account-tie" screen="Profile" color="#6366F1" />
-            <MenuItem title="Matrícula" icon="file-certificate" screen="Matricula" color="#0EA5E9" />
-            <MenuItem title="Recibos" icon="credit-card-outline" screen="Recibos" color="#EF4444" />
-            <MenuItem title="Asistencias" icon="calendar-check-outline" screen="Asistencias" color="#10B981" />
-            <MenuItem title="Malla" icon="file-tree" screen="Malla" color="#F59E0B" />
-            <MenuItem title="Horario" icon="clock-fast" screen="Horario" color="#8B5CF6" />
-            <MenuItem title="Trámites" icon="file-document-outline" screen="Tramites" color="#F97316" />
+            <MenuItem 
+              title="Microsoft Teams" icon="microsoft-teams" color="#444791" 
+              subText="Chat y Clases en vivo"
+              hasBadge={true} // Siempre activo para incentivar revisión
+              onPress={() => navigation.navigate('Browser', { 
+                url: 'https://teams.microsoft.com/_#/messaging', 
+                title: 'Microsoft Teams' 
+              })} 
+            />
 
+            <MenuItem 
+              title="Correo Outlook" icon="microsoft-outlook" color="#0078D4" 
+              subText="Bandeja de Entrada"
+              hasBadge={true} // Siempre activo para incentivar revisión
+              onPress={() => navigation.navigate('Browser', { 
+                url: 'https://outlook.office.com/mail/', 
+                title: 'Correo Outlook' 
+              })} 
+            />
+
+            <MenuItem 
+              title="Asistencias" icon="calendar-check-outline" color="#10B981" 
+              onPress={() => navigation.navigate('Asistencias', { codigosap: user?.CODIGOSAP })} 
+            />
+
+            <MenuItem 
+              title="Recibos" icon="credit-card-outline" color="#EF4444" 
+              hasBadge={hasPendingReceipts} // DINÁMICO: Solo si hay deudas
+              onPress={() => navigation.navigate('Recibos', { codigosap: user?.CODIGOSAP })} 
+            />
+
+            <MenuItem 
+              title="Malla" icon="file-tree" color="#F59E0B" 
+              onPress={() => navigation.navigate('Malla', { codigosap: user?.CODIGOSAP })} 
+            />
+
+            <MenuItem 
+              title="Horario" icon="clock-fast" color="#8B5CF6" 
+              onPress={() => navigation.navigate('Horario', { codigosap: user?.CODIGOSAP })} 
+            />
+
+            <MenuItem 
+              title="Trámites" icon="file-document-outline" color="#F97316" 
+              onPress={() => navigation.navigate('Tramites', { codigosap: user?.CODIGOSAP })} 
+            />
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Los derechos Reservados USMP-FN 2026
+              © Derechos Reservados USMP-FN 2026
             </Text>
           </View>
 
         </ScrollView>
-
       </ImageBackground>
 
       {/* MODAL LOGOUT */}
-
       <Modal animationType="fade" transparent visible={logoutModalVisible}>
-
         <View style={styles.modalOverlay}>
-
           <View style={styles.modalCard}>
-
             <View style={styles.modalIconBg}>
               <Icon name="logout-variant" size={40} color="#8B0000" />
             </View>
-
-            <Text style={styles.modalTitle}>
-              Cerrar Sesión
-            </Text>
-
-            <Text style={styles.modalMessage}>
-              ¿Estás seguro de que deseas finalizar tu sesión actual?
-            </Text>
-
+            <Text style={styles.modalTitle}>Cerrar Sesión</Text>
+            <Text style={styles.modalMessage}>¿Estás seguro de que deseas finalizar tu sesión actual?</Text>
             <View style={styles.modalButtonsRow}>
-
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setLogoutModalVisible(false)}
-              >
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setLogoutModalVisible(false)}>
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.confirmBtn}
-                onPress={handleConfirmLogout}
-              >
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirmLogout}>
                 <Text style={styles.confirmBtnText}>Sí, salir</Text>
               </TouchableOpacity>
-
             </View>
-
           </View>
-
         </View>
-
       </Modal>
 
-      {/* LOADING LOGOUT */}
-
       {isLoggingOut && (
-
         <View style={styles.logoutOverlay}>
           <ActivityIndicator size="large" color="#FFF" />
-          <Text style={styles.logoutOverlayText}>
-            Cerrando sesión...
-          </Text>
+          <Text style={styles.logoutOverlayText}>Cerrando sesión...</Text>
         </View>
-
       )}
-
     </SafeAreaView>
-
   );
-
 }
+
+// ESTILOS PARA LAS NOTIFICACIONES
+const localStyles = StyleSheet.create({
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#FFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2 },
+      android: { elevation: 2 }
+    })
+  }
+});
