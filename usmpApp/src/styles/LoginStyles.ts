@@ -1,0 +1,166 @@
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 25,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logo: {
+    width: 110,
+    height: 110,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#F2F2F2',
+    marginTop: 5,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 25,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#7A0000',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 10,
+    fontSize: 15,
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#9B0000',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+  footer: {
+    textAlign: 'center',
+    color: '#FFFFFF',
+    marginTop: 25,
+    fontSize: 12,
+  },
+
+  /* ESTILOS DEL MODAL BONIS */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: width * 0.85,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    padding: 25,
+    alignItems: 'center',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  modalIconContainer: {
+    marginTop: -65, // Lo posiciona sobre el borde superior del modal
+    marginBottom: 15,
+  },
+  modalIconGradient: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 6,
+    borderColor: '#FFFFFF',
+  },
+  modalTitleText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  modalInfoBox: {
+    backgroundColor: '#F9F9F9',
+    width: '100%',
+    borderRadius: 15,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  modalUserName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#9B0000',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  modalUserEmail: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 5,
+  },
+  modalBodyText: {
+    fontSize: 14,
+    color: '#777',
+    textAlign: 'center',
+    marginBottom: 25,
+    paddingHorizontal: 10,
+  },
+  modalButtonAction: {
+    flexDirection: 'row',
+    backgroundColor: '#9B0000',
+    width: '100%',
+    paddingVertical: 15,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  modalButtonTextAction: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+});
