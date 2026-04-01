@@ -25,7 +25,7 @@ export default function ReceiptsScreen({ navigation, route }) {
   const [modalVisible, setModalVisible] = useState(null);
   const [instruccionesVisible, setInstruccionesVisible] = useState(false);
 
-  // --- NUEVO ESTADO PARA ALERTAS DE PAGO ---
+  // --- ESTADO PARA ALERTAS DE PAGO ---
   const [alertaPago, setAlertaPago] = useState(null);
 
   useEffect(() => {
@@ -54,12 +54,11 @@ export default function ReceiptsScreen({ navigation, route }) {
     } catch (err) { console.log(err); }
   }, [codigosap]);
 
-  // --- LÓGICA DE VERIFICACIÓN DE VENCIMIENTOS ---
+  // --- LÓGICA DE VERIFICACIÓN DE VENCIMIENTOS (A 15 DÍAS) ---
   const verificarVencimientos = (recibos) => {
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); // Normalizamos la hora de hoy
+    hoy.setHours(0, 0, 0, 0);
 
-    // Buscamos solo los recibos pendientes ('P')
     const pendientes = recibos.filter(r => (r.CODIGOESTADORECIBO || r.estado) === 'P');
 
     for (let recibo of pendientes) {
@@ -72,17 +71,15 @@ export default function ReceiptsScreen({ navigation, route }) {
       const diffTime = fechaVen - hoy;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      // 1. Caso: Pago Vencido
       if (diffDays < 0) {
         setAlertaPago({
           tipo: 'vencido',
           mensaje: `Tienes un recibo vencido hace ${Math.abs(diffDays)} día(s).`,
           concepto: recibo.DENOMINACION || recibo.DESCRIPCION || 'Concepto de pago'
         });
-        break; // Mostramos la alerta más crítica (vencido) y salimos
+        break; 
       } 
-      // 2. Caso: Próximo a vencer (en 7 días o menos)
-      else if (diffDays <= 7) {
+      else if (diffDays <= 15) {
         setAlertaPago({
           tipo: 'proximo',
           mensaje: diffDays === 0 
@@ -99,14 +96,13 @@ export default function ReceiptsScreen({ navigation, route }) {
     if (!codigosap) return;
     try {
       setLoading(true);
-      setAlertaPago(null); // Limpiamos alerta antes de recargar
+      setAlertaPago(null); 
       const res = await api.get(`/recibos/${codigosap}`, {
         params: { estado: estado || undefined, claseobjeto: claseobjeto || undefined, periodo: periodo || undefined },
       });
       const data = res.data?.data || res.data || [];
       const rows = Array.isArray(data) ? data : data.rows || [];
 
-      // Ordenar: Pendientes ('P') primero
       const sortedData = [...rows].sort((a, b) => {
         const estA = a.CODIGOESTADORECIBO || a.estado;
         const estB = b.CODIGOESTADORECIBO || b.estado;
@@ -116,8 +112,6 @@ export default function ReceiptsScreen({ navigation, route }) {
       });
 
       setReceipts(sortedData);
-      
-      // Ejecutamos la validación de fechas
       verificarVencimientos(sortedData);
 
     } catch (err) { 
@@ -140,7 +134,6 @@ export default function ReceiptsScreen({ navigation, route }) {
     return found ? (found.DENOMINACION || found.concepto) : 'Todos los Conceptos';
   };
 
-  // --- MODAL DE INSTRUCTIVO DE PAGO ---
   const PagoModal = () => (
     <Modal visible={instruccionesVisible} transparent animationType="slide">
       <View style={styles.modalOverlay}>
@@ -317,7 +310,6 @@ export default function ReceiptsScreen({ navigation, route }) {
 
       <PagoModal />
 
-      {/* BANNER DE NOTIFICACIÓN DE PAGOS */}
       {alertaPago && (
         <View style={[localStyles.alertBanner, { backgroundColor: alertaPago.tipo === 'vencido' ? '#FFF5F5' : '#FFFBEB' }]}>
           <Icon 
@@ -357,7 +349,6 @@ export default function ReceiptsScreen({ navigation, route }) {
   );
 }
 
-// ESTILOS LOCALES PARA LAS ALERTAS
 const localStyles = StyleSheet.create({
   alertBanner: {
     flexDirection: 'row',

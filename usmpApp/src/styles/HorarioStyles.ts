@@ -12,18 +12,19 @@ export const styles = StyleSheet.create({
   // --- HEADER (ESTILO ROJO INSTITUCIONAL) ---
   header: {
     backgroundColor: '#8B0000',
-    height: 140,
+    height: Platform.OS === 'ios' ? 160 : 140, // Un poco más alto en iOS por el Notch
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 40 : 10,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
+    elevation: 10, // Sombra en Android
+    shadowColor: '#000', // Sombra en iOS
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     zIndex: 10,
   },
   headerTitle: { 
@@ -84,14 +85,17 @@ export const styles = StyleSheet.create({
     marginBottom: 15,
     flexDirection: 'row', 
     overflow: 'hidden',
+    // Sombras para Android
     elevation: 4, 
+    // Sombras para iOS
     shadowColor: '#000', 
-    shadowOpacity: 0.08, 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, 
     shadowRadius: 6,
   },
   statusIndicator: { 
     width: 6,
-    backgroundColor: '#8B0000' // Barra lateral roja
+    backgroundColor: '#8B0000' // Barra lateral roja institucional
   },
   cardBody: { 
     flex: 1, 
@@ -102,12 +106,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   cursoText: { 
-    fontSize: 16, 
+    fontSize: 15, 
     fontWeight: 'bold', 
     color: '#111827', 
-    marginLeft: 12,
+    marginLeft: 10,
     flex: 1,
-    lineHeight: 22
+    lineHeight: 20
   },
   divider: { 
     height: 1, 
@@ -132,16 +136,16 @@ export const styles = StyleSheet.create({
   goldTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB', // Fondo crema suave
+    backgroundColor: '#FFFBEB', 
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#D4AF37', // Borde Dorado
+    borderColor: '#D4AF37', 
   },
   goldTagText: {
     fontSize: 11,
-    color: '#8B4513', // Marrón oscuro para legibilidad sobre dorado
+    color: '#8B4513', 
     fontWeight: 'bold',
     letterSpacing: 0.5
   },
@@ -156,7 +160,8 @@ export const styles = StyleSheet.create({
     color: '#9CA3AF', 
     fontSize: 16,
     fontWeight: '500',
-    marginTop: 15
+    marginTop: 15,
+    textAlign: 'center'
   },
   loadingContainer: {
     flex: 1,
@@ -165,14 +170,20 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6'
   },
 
-  // --- MODAL Y FILTROS (MANTENIENDO TU ESTRUCTURA) ---
-  filterSection: { paddingHorizontal: 20, marginTop: -30, marginBottom: 10 },
+  // --- MODAL Y FILTROS ---
+  filterSection: { 
+    paddingHorizontal: 20, 
+    marginTop: -30, 
+    marginBottom: 10 
+  },
   filterCard: {
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 12,
     elevation: 8,
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10,
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 10,
   },
   selectBtn: {
     flexDirection: 'row',

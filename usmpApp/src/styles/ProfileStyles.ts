@@ -25,7 +25,7 @@ interface Styles {
   readOnlyBox: ViewStyle;
   miniLabel: TextStyle;
   miniValue: TextStyle;
-  editCard: ViewStyle;
+  editCard: ViewStyle;     
   inputWrapper: ViewStyle;
   inputLabel: TextStyle;
   inputGroup: ViewStyle;
@@ -34,7 +34,7 @@ interface Styles {
   saveButton: ViewStyle;
   saveText: TextStyle;
   modalOverlay: ViewStyle;
-  modalContent: ViewStyle;
+  modalContent: ViewStyle;  
   modalIconCircle: ViewStyle;
   modalTitle: TextStyle;
   modalMessage: TextStyle;

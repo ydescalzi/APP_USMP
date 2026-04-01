@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import api from '../../services/api'; // Asegúrate de tener tu instancia de API importada
+import api from '../../services/api'; 
 import styles from '../../styles/HomeStyles';
 
 // Componente MenuItem mejorado con sistema de Notificaciones (Badges)
@@ -28,7 +28,6 @@ const MenuItem = React.memo(({ title, icon, color = "#8B0000", onPress, subText 
   >
     <View style={[styles.iconCircle, { backgroundColor: `${color}12` }]}>
       <Icon name={icon} size={28} color={color} />
-      {/* INDICADOR DE NOTIFICACIÓN (PUNTO ROJO) */}
       {hasBadge && (
         <View style={localStyles.badgeDot} />
       )}
@@ -54,7 +53,7 @@ export default function HomeScreen({ navigation }) {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  // ESTADOS PARA NOTIFICACIONES
+  // ESTADO PARA NOTIFICACIÓN DE RECIBOS
   const [hasPendingReceipts, setHasPendingReceipts] = useState(false);
 
   const API_URL = "http://10.0.2.2:3001";
@@ -70,7 +69,6 @@ export default function HomeScreen({ navigation }) {
         const localUser = JSON.parse(data);
         setUser(localUser);
         
-        // Verificamos recibos pendientes apenas carga el Home
         const codigo = localUser?.codigoSAP || localUser?.CODIGOSAP;
         if (codigo) {
           checkReceipts(codigo);
@@ -89,7 +87,6 @@ export default function HomeScreen({ navigation }) {
       const data = res.data?.data || res.data || [];
       const rows = Array.isArray(data) ? data : data.rows || [];
       
-      // Si hay al menos un recibo con estado 'P' (Pendiente)
       const pending = rows.some(r => (r.CODIGOESTADORECIBO || r.estado) === 'P');
       setHasPendingReceipts(pending);
     } catch (err) {
@@ -171,7 +168,7 @@ export default function HomeScreen({ navigation }) {
           
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Servicios Académicos</Text>
-            <View style={styles.titleBadge}>
+            <View style={styles.titleBadge}>    
               <Text style={styles.titleBadgeText}>2026</Text>
             </View>
           </View>
@@ -188,19 +185,19 @@ export default function HomeScreen({ navigation }) {
             />
 
             <MenuItem 
-              title="Microsoft Teams" icon="microsoft-teams" color="#444791" 
-              subText="Chat y Clases en vivo"
-              hasBadge={true} // Siempre activo para incentivar revisión
+              title="Ayuda en Línea" icon="microsoft-teams" color="#444791" 
+              subText="Chat en vivo"
+              hasBadge={true} 
               onPress={() => navigation.navigate('Browser', { 
                 url: 'https://teams.microsoft.com/_#/messaging', 
-                title: 'Microsoft Teams' 
+                title: 'Ayuda en Línea - Microsoft Teams' 
               })} 
             />
 
             <MenuItem 
               title="Correo Outlook" icon="microsoft-outlook" color="#0078D4" 
               subText="Bandeja de Entrada"
-              hasBadge={true} // Siempre activo para incentivar revisión
+              hasBadge={true} 
               onPress={() => navigation.navigate('Browser', { 
                 url: 'https://outlook.office.com/mail/', 
                 title: 'Correo Outlook' 
@@ -214,7 +211,7 @@ export default function HomeScreen({ navigation }) {
 
             <MenuItem 
               title="Recibos" icon="credit-card-outline" color="#EF4444" 
-              hasBadge={hasPendingReceipts} // DINÁMICO: Solo si hay deudas
+              hasBadge={hasPendingReceipts} 
               onPress={() => navigation.navigate('Recibos', { codigosap: user?.CODIGOSAP })} 
             />
 
@@ -227,16 +224,11 @@ export default function HomeScreen({ navigation }) {
               title="Horario" icon="clock-fast" color="#8B5CF6" 
               onPress={() => navigation.navigate('Horario', { codigosap: user?.CODIGOSAP })} 
             />
-
-            <MenuItem 
-              title="Trámites" icon="file-document-outline" color="#F97316" 
-              onPress={() => navigation.navigate('Tramites', { codigosap: user?.CODIGOSAP })} 
-            />
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              © Derechos Reservados USMP-FN 2026
+              © Derechos Reservados USMP-FN 2026 - V01
             </Text>
           </View>
 
@@ -274,7 +266,6 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// ESTILOS PARA LAS NOTIFICACIONES
 const localStyles = StyleSheet.create({
   badgeDot: {
     position: 'absolute',
