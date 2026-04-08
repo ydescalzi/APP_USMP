@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  SectionList,
   ActivityIndicator,
   Alert,
   StatusBar,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,39 +17,47 @@ import { styles } from '../../styles/HorarioStyles';
 export default function HorarioScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [horarioAgrupado, setHorarioAgrupado] = useState([]);
+  const [horarioPorDia, setHorarioPorDia] = useState({});
+
+  const diasOrden = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+
+  // --- PALETA DE COLORES JUVENILES Y MODERNOS ---
+  const getCourseColor = (curso) => {
+    const palette = [
+      '#FF85A1', // Rosa chicle
+      '#4ECDC4', // Turquesa
+      '#A29BFE', // Lavanda
+      '#FFD93D', // Amarillo sol
+      '#6C5CE7', // Morado intenso
+      '#FF7675', // Coral
+      '#55E6C1', // Menta
+      '#74B9FF', // Azul cielo
+    ];
+    let hash = 0;
+    for (let i = 0; i < curso.length; i++) {
+      hash = curso.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash % palette.length);
+    return palette[index];
+  };
 
   useEffect(() => {
     obtenerHorario();
   }, []);
 
   const agruparPorDia = (data) => {
-    if (!data || data.length === 0) return [];
-
-    // 1. Definimos el orden y normalizamos para evitar errores de tildes o espacios
-    const diasOrden = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"];
-    
+    if (!data) return {};    
     const grupos = data.reduce((acc, item) => {
-      // Limpiamos el texto: quitamos espacios y tildes
-      const diaRaw = item.DIA || "OTROS";
-      const diaNormalizado = diaRaw
-        .trim()
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, ""); // Quita tildes (é -> e)
-
+      const diaNormalizado = item.DIA.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (!acc[diaNormalizado]) acc[diaNormalizado] = [];
       acc[diaNormalizado].push(item);
       return acc;
     }, {});
 
-    // 2. Mapeamos al formato requerido por SectionList
-    return diasOrden
-      .filter((dia) => grupos[dia]) // Solo días que tienen clases
-      .map((dia) => ({
-        title: dia,
-        data: grupos[dia],
-      }));
+    Object.keys(grupos).forEach(dia => {
+      grupos[dia].sort((a, b) => a.HORAINICIO.localeCompare(b.HORAINICIO));
+    });
+    return grupos;
   };
 
   const obtenerHorario = async () => {
@@ -58,24 +66,12 @@ export default function HorarioScreen() {
       const codigosap = await AsyncStorage.getItem('codigosap');
       const anio = await AsyncStorage.getItem('anio');
       const semestre = await AsyncStorage.getItem('semestre');
-
-      if (!codigosap || !anio || !semestre) {
-        Alert.alert('Error', 'No se encontró información de la sesión. Inicie sesión nuevamente.');
-        return;
-      }
-
-      // Llamada a la API
       const response = await api.get(`/horario/${codigosap}/${anio}/${semestre}`);
-
       if (response.data.success) {
-        const datosAgrupados = agruparPorDia(response.data.data);
-        setHorarioAgrupado(datosAgrupados);
-      } else {
-        setHorarioAgrupado([]);
+        setHorarioPorDia(agruparPorDia(response.data.data));
       }
     } catch (error) {
-      console.error("Error fetching schedule:", error);
-      Alert.alert('Error', 'No se pudo conectar con el servidor');
+      Alert.alert('Error', 'No se pudo cargar el horario');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -87,51 +83,10 @@ export default function HorarioScreen() {
     obtenerHorario();
   }, []);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.statusIndicator} />
-      <View style={styles.cardBody}>
-        <View style={styles.infoRow}>
-          <Icon name="book-open-variant" size={20} color="#8B0000" />
-          <Text style={styles.cursoText} numberOfLines={2}>
-            {item.CURSO}
-          </Text>
-        </View>
-        
-        <View style={styles.divider} />
-        
-        <View style={styles.amountContainer}>
-          <View style={styles.infoRow}>
-            <Icon name="clock-outline" size={18} color="#D4AF37" />
-            <Text style={styles.horaText}>
-              {item.HORAINICIO.substring(0, 5)} - {item.HORAFIN.substring(0, 5)}
-            </Text>
-          </View>
-
-          <View style={styles.goldTag}>
-            <Icon name="door-open" size={14} color="#8B4513" style={{ marginRight: 4 }} />
-            <Text style={styles.goldTagText}>
-              {item.AULA || 'VIRTUAL'}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderSectionHeader = ({ section: { title } }) => (
-    <View style={styles.sectionHeader}>
-      <Icon name="calendar-today" size={18} color="#111827" />
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionLine} />
-    </View>
-  );
-
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8B0000" />
-        <Text style={{ marginTop: 10, color: '#8B0000' }}>Cargando horario...</Text>
       </View>
     );
   }
@@ -139,35 +94,47 @@ export default function HorarioScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#8B0000" />
-      
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Mi Horario</Text>
-          <Text style={styles.headerSubtitle}>Ciclo Académico Actual</Text>
+          <Text style={styles.headerSubtitle}>Semestre Académico</Text>
         </View>
-        <View style={styles.iconBtn}>
-          <Icon name="calendar-month" size={26} color="#FFF" />
-        </View>
+        <Icon name="lightning-bolt" size={28} color="#FFD93D" />
       </View>
 
-      <SectionList
-        sections={horarioAgrupado}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#8B0000"]} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="calendar-remove" size={60} color="#9CA3AF" />
-            <Text style={styles.emptyText}>No hay clases registradas para este periodo</Text>
-          </View>
-        }
-      />
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableContainer}>
+          {diasOrden.map((dia) => (
+            <View key={dia} style={styles.column}>
+              <View style={styles.dayHeader}>
+                <Text style={styles.dayText}>{dia.substring(0, 3)}</Text>
+              </View>
+              
+              <View style={styles.classesContainer}>
+                {horarioPorDia[dia] ? (
+                  horarioPorDia[dia].map((clase, index) => {
+                    const color = getCourseColor(clase.CURSO);
+                    return (
+                      <View key={index} style={[styles.classCard, { backgroundColor: color + '15', borderLeftColor: color }]}>
+                        <Text style={[styles.classTime, { color: color }]}>
+                          {clase.HORAINICIO.substring(0, 5)} - {clase.HORAFIN.substring(0, 5)}
+                        </Text>
+                        <Text style={styles.classTitle} numberOfLines={3}>{clase.CURSO}</Text>
+                        <View style={styles.classFooter}>
+                          <Icon name="map-marker-radius" size={12} color="#4B5563" />
+                          <Text style={styles.classRoom}>{clase.AULA || 'VIRTUAL'}</Text>
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyDay}><Text style={styles.emptyDayText}>Relax 😎</Text></View>
+                )}
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
