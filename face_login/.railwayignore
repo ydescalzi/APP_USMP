@@ -1,0 +1,11 @@
+face_login/
+usmpApp/
+venv/
+.venv/
+*.pkl
+*.jpg
+*.png
+requirements.txt
+runtime.txt
+api.py
+generate_embeddings.py
