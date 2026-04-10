@@ -1,8 +1,8 @@
-
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://10.0.2.2:3001', // Android Emulator
+  // ¡Cambiamos Ngrok por tu URL permanente de Railway!
+  baseURL: 'https://appusmp-production.up.railway.app', 
   timeout: 15000,
 });
 
